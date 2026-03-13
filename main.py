@@ -303,12 +303,18 @@ async def approve(callback: types.CallbackQuery):
         except: pass
     await asyncio.sleep(2)
     try:
-        await bot.send_document(uid, FSInputFile("Todirean Iuliana.pdf"), caption="📖 Ghidul tău Complet pentru Abdomen Plat", parse_mode="Markdown")
+        await bot.send_document(uid, FSInputFile("Todirean Iuliana.pdf"), caption="📖 Ghidul tău Complet pentru Abdomen Plat\n\n"
+                    "Salvează-l în telefon și citește primele 10 pagini chiar astăzi!", parse_mode="Markdown")
     except: await bot.send_message(uid, "⚠️ A apărut o problemă la trimiterea PDF-ului.")
-    if VIDEO_CURS_ID: await bot.send_video(uid, VIDEO_CURS_ID, caption="🎥 CUM SĂ ÎNCEPI (Mesaj Important)")
-    if VIDEO_CALORII: await bot.send_video(uid, VIDEO_CALORII, caption="🥗 TOTUL DESPRE CALORII")
+    if VIDEO_CURS_ID: await bot.send_video(uid, VIDEO_CURS_ID, caption="🎥 CUM SĂ ÎNCEPI (Mesaj Important)\n\n"
+                        "Am pregătit acest video ca să mă asigur că obții rezultate maxime. "
+                        "Urmărește-l cu atenție!")
+    if VIDEO_CALORII: await bot.send_video(uid, VIDEO_CALORII, caption="🥗 TOTUL DESPRE CALORII\n\n"
+                        "În acest video îți explic cum să îți gestionezi alimentația "
+                        "fără să te simți privată de mâncarea preferată. Vizionare plăcută!  ")
     builder = InlineKeyboardBuilder(); builder.row(InlineKeyboardButton(text="ℹ️ Suport", url=LINK_SUPORT))
-    await bot.send_message(uid, "Spor la treabă! 💪✨", reply_markup=builder.as_markup())
+    await bot.send_message(uid, "Sunt alături de tine în această transformare! Dacă ai întrebări pe parcurs, "
+        "folosește butonul de suport. Spor la treabă! 💪✨", reply_markup=builder.as_markup())
     await callback.message.edit_caption(caption="✅ LIVRAT CU SUCCES", parse_mode="Markdown")
     await callback.answer("Materiale trimise!")
 
@@ -334,10 +340,10 @@ async def auto_followup_loop():
                 u_id, join_date, last_followup = user
                 hours_passed=(now-join_date).total_seconds()/3600
                 if 2<=hours_passed<24 and last_followup==0:
-                    await bot.send_message(u_id,"Hei! ✨ Nu uita de tine.", reply_markup=main_menu())
+                    await bot.send_message(u_id,"Hei! ✨ Nu uita de tine. Multe fete au scăpat de balonare cu acest ghid. 🌿", reply_markup=main_menu())
                     cursor.execute("UPDATE users SET last_followup=1 WHERE user_id=%s",(u_id,))
                 elif hours_passed>=24 and last_followup==1:
-                    await bot.send_message(u_id,"Un mic secret: hidratarea corectă...", reply_markup=main_menu())
+                    await bot.send_message(u_id,"Bună! ✨ Un mic secret: Hidratarea corectă e baza unui abdomen plat. 📲", reply_markup=main_menu())
                     cursor.execute("UPDATE users SET last_followup=2 WHERE user_id=%s",(u_id,))
                 conn.commit()
             # --- FOLLOWUP PENDING BUYERS ---
@@ -350,7 +356,7 @@ async def auto_followup_loop():
                     builder = InlineKeyboardBuilder()
                     builder.row(InlineKeyboardButton(text="💸 Achită prin MIA", url=LINK_MIA))
                     builder.row(InlineKeyboardButton(text="ℹ️ Am o întrebare", url=LINK_SUPORT))
-                    await bot.send_message(u_id,"Dacă ai avut vreo problemă la transfer...", reply_markup=builder.as_markup())
+                    await bot.send_message(u_id,"Dacă ai vreo întreabre,trimite-o la suport, o să îți răspundem la orice ✨", reply_markup=builder.as_markup())
             # --- FOLLOWUP REVIEW ---
             cursor.execute("SELECT user_id, purchase_date FROM users WHERE has_access=TRUE AND review_sent=0")
             customers=cursor.fetchall()
@@ -362,7 +368,8 @@ async def auto_followup_loop():
                     builder = InlineKeyboardBuilder()
                     builder.row(InlineKeyboardButton(text="✍️ Trimite un Review", callback_data="give_review"))
                     builder.row(InlineKeyboardButton(text="ℹ️ Suport", url=LINK_SUPORT))
-                    await bot.send_message(u_id,"A trecut o zi de când ai ghidul...", reply_markup=builder.as_markup())
+                    await bot.send_message(u_id,"Bună! ✨ A trecut o zi de când ai ghidul. Ai reușit să-l răsfoiești?\n\n"
+                            "Dacă îmi lași o recenzie scurtă, îți trimit cadou un Video Antrenament Bonus! 🎁", reply_markup=builder.as_markup())
                     cursor.execute("UPDATE users SET review_sent=1 WHERE user_id=%s",(u_id,))
             conn.commit(); cursor.close(); conn.close()
         except Exception as e:
