@@ -187,13 +187,19 @@ async def contents_handler(callback: types.CallbackQuery):
     if PHOTO_1 and PHOTO_2:
         album=[InputMediaPhoto(media=PHOTO_1), InputMediaPhoto(media=PHOTO_2)]
         await bot.send_media_group(chat_id=callback.from_user.id, media=album)
-    await bot.send_message(callback.from_user.id, "În ghid vei găsi răspunsuri...", reply_markup=post_contents_menu())
+    await bot.send_message(callback.from_user.id, "În ghid vei găsi răspunsuri clare la întrebările pe care multe femei le au:\n"
+        " • De ce nu dispare burta, chiar dacă încerci să mănânci mai puțin.\n"
+        " • 5 cauze reale pentru care nu slăbești\n"
+        " • Cum ar trebui să arate mesele tale pentru echilibru și energie\n"
+        " • Cum să slăbești sănătos, fără stres și fără diete extreme\n"
+        " • De ce apar balonările frecvent și disconfortul după masă\n\n"
+        "Ghidul explică toate aceste lucruri simplu și practic pentru rezultate reale.", reply_markup=post_contents_menu())
 
 # --- VIDEO INTRO ---
 @dp.callback_query(F.data=="video_intro")
 async def send_intro(callback: types.CallbackQuery):
     if VIDEO_DESCRIERE_ID:
-        await callback.message.answer_video(video=VIDEO_DESCRIERE_ID, caption="Am pregătit acest video...", reply_markup=post_intro_menu())
+        await callback.message.answer_video(video=VIDEO_DESCRIERE_ID, caption="Am pregătit acest video ca să-ți arăt, pas cu pas, despre ce e ghidul și cum te poate ajuta.", reply_markup=post_intro_menu())
     await callback.answer()
 
 # --- FREE TEST ---
