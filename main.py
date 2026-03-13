@@ -153,9 +153,15 @@ async def send_welcome_flow(user_id):
         try: await bot.send_video_note(chat_id=user_id, video_note=VIDEO_CRUJOC_ID); await asyncio.sleep(3)
         except: pass
 
-    await bot.send_message(user_id, "Bună! 🤍 Mă bucur că ai ajuns aici.\nEu sunt Iuliana - Instructor fitness și nutriționist.", parse_mode="Markdown")
+    await bot.send_message(user_id, "Bună! 🤍 Mă bucur că ai ajuns aici.\nEu sunt Iuliana - Instructor fitness și nutriționist. "
+        "Lucrez cu femei care vor să slăbească sănătos, să-și tonifieze abdomenul și să își recapete energia, fără diete extreme.", parse_mode="Markdown")
     await asyncio.sleep(2)
-    await bot.send_message(user_id, "Am creat ghidul pentru abdomen plat și digestie echilibrată...", reply_markup=main_menu(), parse_mode="Markdown")
+    await bot.send_message(user_id, "Am creat ghidul pentru abdomen plat și digestie echilibrată. Este un ghid simplu și practic pentru femeile care:\n"
+        " • Se confruntă cu balonare frecventă\n"
+        " • Simt că abdomenul este mereu umflat\n"
+        " • Nu știu ce să mănânce pentru a slăbi frumos\n"
+        " • Vor să își tonifieze abdomenul fără diete\n\n"
+        "În ghid găsești explicații clare, recomandări alimentare și exerciții care te ajută să reduci balonarea, să reactivezi core-ul și să obții un abdomen mai plat. ✨", reply_markup=main_menu(), parse_mode="Markdown")
 
 # --- /start ---
 @dp.message(Command("start"))
