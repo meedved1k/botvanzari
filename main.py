@@ -41,8 +41,15 @@ class BroadcastState(StatesGroup):
 
 # --- PostgreSQL ---
 def get_conn():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
-
+    uri = os.getenv("DATABASE_URL")
+    if not uri:
+        raise ValueError("EROARE: Variabila DATABASE_URL nu este setată în Railway!")
+    
+    # Rezolvă eroarea de protocol dacă e cazul
+    if uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    
+    return psycopg2.connect(uri)
 def init_db():
     conn = get_conn()
     cursor = conn.cursor()
