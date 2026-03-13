@@ -207,13 +207,18 @@ async def send_intro(callback: types.CallbackQuery):
 async def free_test(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     if not await check_subscription(user_id):
-        await callback.message.answer("Te rog să te abonezi la canal...", reply_markup=sub_keyboard()); await callback.answer(); return
+        await callback.message.answer("Mă bucur că vrei să facem testul! ✨\n\n"
+            "Pentru a debloca acest video și restul materialelor gratuite, "
+            "te invit să te alături comunității mele de pe canal. "
+            "Apasă butonul de mai jos, apoi revino aici:", reply_markup=sub_keyboard()); await callback.answer(); return
     update_db(user_id,"a_deschis_test",True)
     if FREE_TEST_ID:
-        await callback.message.answer("Hai să facem testul! 💪")
+        await callback.message.answer("Vrei să afli cât de puternici sunt mușchii tăi abdominali?\n"
+                                      "Hai să facem împreună un test rapid în trei exerciții! 💪")
         await bot.send_video(user_id, video=FREE_TEST_ID)
         await asyncio.sleep(2)
-        await bot.send_message(user_id, "Dacă vrei să continui, ghidul meu te va ajuta...", reply_markup=premium_menu())
+        await bot.send_message(user_id, "Cum a fost? Dacă simți că ai nevoie de mai multă claritate în alimentație, "
+                               "ghidul meu te va ajuta enorm. 👇", reply_markup=premium_menu())
     else: await callback.answer("⚠️ Video momentan indisponibil.", show_alert=True)
     await callback.answer()
 
@@ -259,7 +264,12 @@ async def process_buy(callback: types.CallbackQuery):
     builder.row(InlineKeyboardButton(text="💸 Achită prin MIA", url=LINK_MIA))
     builder.row(InlineKeyboardButton(text="✅ Am achitat", callback_data="confirm_payment"))
     builder.row(InlineKeyboardButton(text="ℹ️ Am o  întrebare", url=LINK_SUPORT))
-    await callback.message.answer("Ghidul costă 300 MDL...", reply_markup=builder.as_markup())
+    await callback.message.answer("Mă bucur mult că vrei să facem asta împreună! ✨ Ghidul costă 300 MDL "
+        "și l-am făcut exact așa cum mi-aș fi dorit să-l am eu când am început – simplu, "
+        "fără bătăi de cap și cu rezultate reale. \n\n"
+        "Ca să îl primești, trebuie doar să trimiți bănuții prin MIA, iar după "
+        "ce faci transferul, lasă-mi aici o poză cu confirmarea. Imediat ce o văd, "
+        "îți trimit fișierul ca să poți începe chiar de azi! 🌸", reply_markup=builder.as_markup())
 
 # --- Confirm Payment ---
 @dp.callback_query(F.data=="confirm_payment")
@@ -272,7 +282,7 @@ async def ask_photo(callback: types.CallbackQuery):
 async def handle_photo(message: types.Message):
     if message.from_user.id==ADMIN_ID: return
     if check_db_flag(message.from_user.id,"a_clicat_cumpara"):
-        await message.answer("✅ Am primit! Iuliana va verifica transferul...")
+        await message.answer("✅ Am primit! Iuliana va verifica transferul în cel mai scurt timp (de obicei durează maxim 10 min ). Vei primi un mesaj aici imediat!")
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text="✅ Aprobă", callback_data=f"approve_{message.from_user.id}"))
         builder.row(InlineKeyboardButton(text="❌ Respinge", callback_data=f"reject_{message.from_user.id}"))
