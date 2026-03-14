@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, FSInputFile, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
- 
+
 # --- CONFIG ---
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -19,7 +19,7 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")
 LINK_MIA = os.getenv("MIA_LINK")
 LINK_SUPORT = os.getenv("SUPORT_LINK")
- 
+
 VIDEO_CALORII = os.getenv("VIDEO_CALORII")
 VIDEO_FELICITARI = os.getenv("CRUJOC_FELICITARI")
 FREE_TEST_ID = os.getenv("FREE_TEST_ID")
@@ -29,16 +29,16 @@ VIDEO_CURS_ID = os.getenv("VIDEO_CURS_ID")
 FREE_WORKOUT_ID = os.getenv("FREE_WORKOUT_ID")
 PHOTO_1 = os.getenv("CUPRINS_PHOTO_1_ID")
 PHOTO_2 = os.getenv("CUPRINS_PHOTO_2_ID")
- 
+
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
- 
+
 # --- FSM Admin ---
 class BroadcastState(StatesGroup):
     waiting_for_message = State()
     target_group = State()
- 
+
 # --- PostgreSQL ---
 def get_conn():
     uri = os.getenv("DATABASE_URL")
@@ -47,7 +47,7 @@ def get_conn():
     if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)
     return psycopg2.connect(uri)
- 
+
 def init_db():
     conn = get_conn()
     cursor = conn.cursor()
@@ -70,6 +70,8 @@ def init_db():
     for col, definition in [
         ("last_followup_sent", "TIMESTAMP"),
         ("pending_followup_sent", "BOOLEAN DEFAULT FALSE"),
+        ("test_date", "TIMESTAMP"),
+        ("test_followup", "SMALLINT DEFAULT 0"),
     ]:
         try:
             cursor.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {definition}")
@@ -78,13 +80,14 @@ def init_db():
     conn.commit()
     cursor.close()
     conn.close()
- 
+
 def update_db(user_id, column, value):
     # NOTĂ: column trebuie să fie întotdeauna un string intern, niciodată de la user
     allowed_columns = {
         "has_access", "a_clicat_cumpara", "a_deschis_test",
         "last_followup", "review_sent", "last_followup_sent",
-        "pending_followup_sent", "purchase_date", "username"
+        "pending_followup_sent", "purchase_date", "username",
+        "test_date", "test_followup"
     }
     if column not in allowed_columns:
         logging.warning(f"update_db: coloană nepermisă '{column}'")
@@ -95,7 +98,7 @@ def update_db(user_id, column, value):
     conn.commit()
     cursor.close()
     conn.close()
- 
+
 def check_db_flag(user_id, column):
     allowed_columns = {
         "has_access", "a_clicat_cumpara", "a_deschis_test",
@@ -110,7 +113,7 @@ def check_db_flag(user_id, column):
     cursor.close()
     conn.close()
     return row[0] if row else False
- 
+
 # --- Subscription Check ---
 async def check_subscription(user_id):
     try:
@@ -118,7 +121,7 @@ async def check_subscription(user_id):
         return member.status in ["member", "administrator", "creator"]
     except Exception:
         return False
- 
+
 # --- Keyboards ---
 def post_contents_menu():
     builder = InlineKeyboardBuilder()
@@ -129,13 +132,13 @@ def post_contents_menu():
     )
     builder.adjust(1, 2)
     return builder.as_markup()
- 
+
 def sub_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="📢 Abonează-te la Canal", url=CHANNEL_LINK))
     builder.row(InlineKeyboardButton(text="✅ Sunt deja abonat", callback_data="check_sub"))
     return builder.as_markup()
- 
+
 def main_menu():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="🏋️ Testează-ți abdomenul", callback_data="free_test"))
@@ -144,7 +147,7 @@ def main_menu():
     builder.row(InlineKeyboardButton(text="✨VREAU ABDOMEN  PLAT (Acces Instant)", callback_data="buy_guide"))
     builder.adjust(1)
     return builder.as_markup()
- 
+
 def premium_menu():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="✨VREAU ABDOMEN  PLAT (Acces Instant)", callback_data="buy_guide"))
@@ -153,7 +156,7 @@ def premium_menu():
     builder.row(InlineKeyboardButton(text="ℹ️ Întrebări / Suport", url=LINK_SUPORT))
     builder.adjust(1)
     return builder.as_markup()
- 
+
 def post_intro_menu():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="✨VREAU ABDOMEN  PLAT (Acces Instant)", callback_data="buy_guide"))
@@ -161,7 +164,7 @@ def post_intro_menu():
     builder.row(InlineKeyboardButton(text="ℹ️ Întrebări / Suport", url=LINK_SUPORT))
     builder.adjust(1, 2)
     return builder.as_markup()
- 
+
 def admin_panel():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="📢 Toți utilizatorii", callback_data="send_to_all"))
@@ -170,7 +173,7 @@ def admin_panel():
     builder.row(InlineKeyboardButton(text="💰 Cei care AU APĂSAT CUMPĂRĂ", callback_data="send_to_pending"))
     builder.adjust(1)
     return builder.as_markup()
- 
+
 # --- Welcome Flow ---
 async def send_welcome_flow(user_id):
     if VIDEO_CRUJOC_ID:
@@ -179,7 +182,7 @@ async def send_welcome_flow(user_id):
             await asyncio.sleep(3)
         except Exception as e:
             logging.warning(f"send_video_note failed for {user_id}: {e}")
- 
+
     await bot.send_message(
         user_id,
         "Bună! 🤍 Mă bucur că ai ajuns aici.\n"
@@ -200,7 +203,7 @@ async def send_welcome_flow(user_id):
         reply_markup=main_menu(),
         parse_mode="Markdown"
     )
- 
+
 # --- /start ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -214,7 +217,7 @@ async def cmd_start(message: types.Message):
     cursor.close()
     conn.close()
     await send_welcome_flow(message.from_user.id)
- 
+
 # --- CHECK SUB ---
 @dp.callback_query(F.data == "check_sub")
 async def check_sub_cb(callback: types.CallbackQuery):
@@ -223,7 +226,7 @@ async def check_sub_cb(callback: types.CallbackQuery):
         await free_test(callback)
     else:
         await callback.answer("❌ Încă nu te-ai abonat la canal!", show_alert=True)
- 
+
 # --- CONTENTS ---
 @dp.callback_query(F.data == "contents")
 async def contents_handler(callback: types.CallbackQuery):
@@ -242,7 +245,7 @@ async def contents_handler(callback: types.CallbackQuery):
         "Ghidul explică toate aceste lucruri simplu și practic pentru rezultate reale.",
         reply_markup=post_contents_menu()
     )
- 
+
 # --- VIDEO INTRO ---
 @dp.callback_query(F.data == "video_intro")
 async def send_intro(callback: types.CallbackQuery):
@@ -253,7 +256,7 @@ async def send_intro(callback: types.CallbackQuery):
             reply_markup=post_intro_menu()
         )
     await callback.answer()
- 
+
 # --- FREE TEST ---
 @dp.callback_query(F.data == "free_test")
 async def free_test(callback: types.CallbackQuery):
@@ -269,6 +272,7 @@ async def free_test(callback: types.CallbackQuery):
         await callback.answer()
         return
     update_db(user_id, "a_deschis_test", True)
+    update_db(user_id, "test_date", datetime.datetime.now())
     if FREE_TEST_ID:
         await callback.message.answer(
             "Vrei să afli cât de puternici sunt mușchii tăi abdominali?\n"
@@ -285,47 +289,47 @@ async def free_test(callback: types.CallbackQuery):
     else:
         await callback.answer("⚠️ Video momentan indisponibil.", show_alert=True)
     await callback.answer()
- 
+
 # --- ADMIN PANEL ---
 @dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin_start(message: types.Message):
     await message.answer("🛠 PANOU CONTROL", reply_markup=admin_panel())
- 
+
 # --- /stats ---
 @dp.message(Command("stats"), F.from_user.id == ADMIN_ID)
 async def admin_stats(message: types.Message):
     conn = get_conn()
     cursor = conn.cursor()
- 
+
     cursor.execute("SELECT COUNT(*) FROM users")
     total = cursor.fetchone()[0]
- 
+
     cursor.execute("SELECT COUNT(*) FROM users WHERE has_access=TRUE")
     cumparati = cursor.fetchone()[0]
- 
+
     cursor.execute("SELECT COUNT(*) FROM users WHERE a_clicat_cumpara=TRUE AND has_access=FALSE")
     pending = cursor.fetchone()[0]
- 
+
     cursor.execute("SELECT COUNT(*) FROM users WHERE a_deschis_test=TRUE AND has_access=FALSE")
     au_testat = cursor.fetchone()[0]
- 
+
     cursor.execute("SELECT COUNT(*) FROM users WHERE a_deschis_test=FALSE AND a_clicat_cumpara=FALSE AND has_access=FALSE")
     doar_start = cursor.fetchone()[0]
- 
+
     cursor.execute("SELECT COUNT(*) FROM users WHERE review_sent=1")
     review_trimis = cursor.fetchone()[0]
- 
+
     cursor.execute("""
         SELECT COUNT(*) FROM users
         WHERE purchase_date >= NOW() - INTERVAL '7 days' AND has_access=TRUE
     """)
     cumparati_7zile = cursor.fetchone()[0]
- 
+
     cursor.close()
     conn.close()
- 
+
     conversie = round((cumparati / total * 100), 1) if total > 0 else 0
- 
+
     text = (
         "📊 *STATISTICI BOT*\n"
         "━━━━━━━━━━━━━━━━━━\n"
@@ -340,7 +344,7 @@ async def admin_stats(message: types.Message):
         f"🗓 Cumpărături ultimele 7 zile: *{cumparati_7zile}*"
     )
     await message.answer(text, parse_mode="Markdown")
- 
+
 # --- BROADCAST: inițiere ---
 @dp.callback_query(F.data.startswith("send_to_"), F.from_user.id == ADMIN_ID)
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
@@ -353,13 +357,13 @@ async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
     )
     await state.set_state(BroadcastState.waiting_for_message)
     await callback.answer()
- 
+
 # --- BROADCAST: livrare — suportă text, foto, video, document ---
 @dp.message(BroadcastState.waiting_for_message, F.from_user.id == ADMIN_ID)
 async def deliver_broadcast(message: types.Message, state: FSMContext):
     data = await state.get_data()
     target = data['target_group']
- 
+
     queries = {
         "all": "SELECT user_id FROM users",
         "only_start": "SELECT user_id FROM users WHERE a_deschis_test=FALSE AND a_clicat_cumpara=FALSE",
@@ -372,7 +376,7 @@ async def deliver_broadcast(message: types.Message, state: FSMContext):
     users = cursor.fetchall()
     cursor.close()
     conn.close()
- 
+
     count = 0
     failed = 0
     for (user_id,) in users:
@@ -407,10 +411,10 @@ async def deliver_broadcast(message: types.Message, state: FSMContext):
             logging.warning(f"Broadcast failed pentru {user_id}: {e}")
             failed += 1
         await asyncio.sleep(0.05)
- 
+
     await message.answer(f"✅ Trimis la {count} persoane. ❌ Eșuat: {failed}.")
     await state.clear()
- 
+
 # --- Buy Guide ---
 @dp.callback_query(F.data == "buy_guide")
 async def process_buy(callback: types.CallbackQuery):
@@ -429,13 +433,13 @@ async def process_buy(callback: types.CallbackQuery):
         reply_markup=builder.as_markup()
     )
     await callback.answer()
- 
+
 # --- Confirm Payment ---
 @dp.callback_query(F.data == "confirm_payment")
 async def ask_photo(callback: types.CallbackQuery):
     await callback.message.answer("Te rog să trimiți poza aici 👇")
     await callback.answer()
- 
+
 # --- Handle Photo ---
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
@@ -457,7 +461,7 @@ async def handle_photo(message: types.Message):
         )
     else:
         await message.answer("⚠️ Folosește butonul 'Cumpără' mai întâi.", reply_markup=main_menu())
- 
+
 # --- Approve Payment ---
 @dp.callback_query(F.data.startswith("approve_"))
 async def approve(callback: types.CallbackQuery):
@@ -472,14 +476,14 @@ async def approve(callback: types.CallbackQuery):
     conn.commit()
     cursor.close()
     conn.close()
- 
+
     if VIDEO_FELICITARI:
         try:
             await bot.send_video_note(uid, video_note=VIDEO_FELICITARI)
         except Exception as e:
             logging.warning(f"Felicitări video eșuat pentru {uid}: {e}")
     await asyncio.sleep(2)
- 
+
     try:
         await bot.send_document(
             uid,
@@ -491,7 +495,7 @@ async def approve(callback: types.CallbackQuery):
     except Exception as e:
         logging.error(f"PDF send eșuat pentru {uid}: {e}")
         await bot.send_message(uid, "⚠️ A apărut o problemă la trimiterea PDF-ului. Contactează suport.")
- 
+
     if VIDEO_CURS_ID:
         await bot.send_video(
             uid, VIDEO_CURS_ID,
@@ -506,7 +510,7 @@ async def approve(callback: types.CallbackQuery):
                     "În acest video îți explic cum să îți gestionezi alimentația "
                     "fără să te simți privată de mâncarea preferată. Vizionare plăcută!"
         )
- 
+
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="ℹ️ Suport", url=LINK_SUPORT))
     await bot.send_message(
@@ -515,10 +519,10 @@ async def approve(callback: types.CallbackQuery):
         "folosește butonul de suport. Spor la treabă! 💪✨",
         reply_markup=builder.as_markup()
     )
- 
+
     await callback.message.edit_caption(caption="✅ LIVRAT CU SUCCES", parse_mode="Markdown")
     await callback.answer("Materiale trimise!")
- 
+
 # --- Reject Payment ---
 @dp.callback_query(F.data.startswith("reject_"))
 async def reject(callback: types.CallbackQuery):
@@ -532,7 +536,7 @@ async def reject(callback: types.CallbackQuery):
     )
     await callback.message.edit_caption(caption="❌ PLATĂ RESPINSĂ", parse_mode="Markdown")
     await callback.answer("Notificare de respingere trimisă.")
- 
+
 # --- Give Review Handler ---
 @dp.callback_query(F.data == "give_review")
 async def give_review_start(callback: types.CallbackQuery):
@@ -548,11 +552,11 @@ async def give_review_start(callback: types.CallbackQuery):
         "Scrie mesajul tău chiar aici 👇"
     )
     await callback.answer()
- 
+
 @dp.message(F.text & ~F.from_user.id.in_({ADMIN_ID}))
 async def handle_review_text(message: types.Message):
     user_id = message.from_user.id
- 
+
     # Procesăm mesajul ca review doar dacă userul are acces și review_sent=1
     # (adică a primit cererea de review dar nu a trimis încă unul)
     conn = get_conn()
@@ -564,16 +568,16 @@ async def handle_review_text(message: types.Message):
     row = cursor.fetchone()
     cursor.close()
     conn.close()
- 
+
     if not row:
         return  # user necunoscut, ignorăm
- 
+
     has_access, review_sent = row
- 
+
     if has_access and review_sent == 1:
         # Salvăm review_sent=2 ca să știm că a trimis review
         update_db(user_id, "review_sent", 2)
- 
+
         # Trimitem bonusul
         if FREE_WORKOUT_ID:
             try:
@@ -592,7 +596,7 @@ async def handle_review_text(message: types.Message):
             await message.answer(
                 "🎁 Mulțumesc pentru review! Bonusul va fi trimis în curând. 🌸"
             )
- 
+
         # Forwarding review la admin
         await bot.send_message(
             ADMIN_ID,
@@ -600,7 +604,7 @@ async def handle_review_text(message: types.Message):
             f"{message.text}",
             parse_mode="Markdown"
         )
- 
+
 # --- Auto Followup Loop ---
 async def auto_followup_loop():
     while True:
@@ -610,7 +614,59 @@ async def auto_followup_loop():
             conn = get_conn()
             cursor = conn.cursor()
             now = datetime.datetime.now()
- 
+
+            # -------------------------------------------------------
+            # FOLLOWUP POST-TEST
+            # Segment: a făcut testul dar NU a cumpărat încă.
+            # Mesaj 1 — la 1h după test: empatie + legătură cu ghidul
+            # Mesaj 2 — la 6h după test: social proof + urgență blândă
+            # -------------------------------------------------------
+            cursor.execute("""
+                SELECT user_id, test_date, test_followup
+                FROM users
+                WHERE a_deschis_test=TRUE
+                  AND has_access=FALSE
+                  AND test_followup < 2
+                  AND test_date IS NOT NULL
+            """)
+            post_test_users = cursor.fetchall()
+
+            for user in post_test_users:
+                u_id, test_date, test_followup = user
+                hours_since_test = (now - test_date).total_seconds() / 3600
+                try:
+                    if test_followup == 0 and hours_since_test >= 1:
+                        await bot.send_message(
+                            u_id,
+                            "Hei! 🤍 Dacă unele exerciții din test au fost grele, "
+                            "e absolut normal — mușchii abdominali slăbiți nu se tonifiează "
+                            "din întâmplare, dar se tonifiează cu metodă.\n\n"
+                            "Exact asta îți arată ghidul meu — pas cu pas, fără complicații. 👇",
+                            reply_markup=premium_menu()
+                        )
+                        cursor.execute(
+                            "UPDATE users SET test_followup=1 WHERE user_id=%s",
+                            (u_id,)
+                        )
+                        conn.commit()
+
+                    elif test_followup == 1 and hours_since_test >= 6:
+                        await bot.send_message(
+                            u_id,
+                            "Astăzi mai multe fete care au făcut același test ca tine "
+                            "au decis să înceapă ghidul. 🌿\n\n"
+                            "Multe mi-au spus că prima săptămână le-a surprins cel mai mult. "
+                            "Tu ești următoarea? ✨",
+                            reply_markup=premium_menu()
+                        )
+                        cursor.execute(
+                            "UPDATE users SET test_followup=2 WHERE user_id=%s",
+                            (u_id,)
+                        )
+                        conn.commit()
+                except Exception as e:
+                    logging.warning(f"Post-test followup eșuat pentru {u_id}: {e}")
+
             # -------------------------------------------------------
             # FOLLOWUP VÂNZARE
             # Folosim last_followup_sent (nu join_date) ca să nu trimitem
@@ -623,7 +679,7 @@ async def auto_followup_loop():
                 WHERE has_access=FALSE AND last_followup < 2
             """)
             prospects = cursor.fetchall()
- 
+
             for user in prospects:
                 u_id, join_date, last_followup, last_followup_sent = user
                 hours_since_join = (now - join_date).total_seconds() / 3600
@@ -640,7 +696,7 @@ async def auto_followup_loop():
                             (now, u_id)
                         )
                         conn.commit()
- 
+
                     elif last_followup == 1 and last_followup_sent:
                         hours_since_last = (now - last_followup_sent).total_seconds() / 3600
                         if hours_since_last >= 22:
@@ -656,7 +712,7 @@ async def auto_followup_loop():
                             conn.commit()
                 except Exception as e:
                     logging.warning(f"Followup vânzare eșuat pentru {u_id}: {e}")
- 
+
             # -------------------------------------------------------
             # FOLLOWUP PENDING BUYERS
             # Se trimite O SINGURĂ DATĂ, la 1-5h după join, dacă userul
@@ -670,7 +726,7 @@ async def auto_followup_loop():
                   AND pending_followup_sent=FALSE
             """)
             pending_buyers = cursor.fetchall()
- 
+
             for user in pending_buyers:
                 u_id, join_date = user
                 hours_since_join = (now - join_date).total_seconds() / 3600
@@ -691,7 +747,7 @@ async def auto_followup_loop():
                         conn.commit()
                     except Exception as e:
                         logging.warning(f"Pending followup eșuat pentru {u_id}: {e}")
- 
+
             # -------------------------------------------------------
             # FOLLOWUP REVIEW — la 24h după cumpărare, o singură dată
             # -------------------------------------------------------
@@ -701,7 +757,7 @@ async def auto_followup_loop():
                 WHERE has_access=TRUE AND review_sent=0
             """)
             customers = cursor.fetchall()
- 
+
             for user in customers:
                 u_id, p_date = user
                 if not p_date:
@@ -725,9 +781,9 @@ async def auto_followup_loop():
                         conn.commit()
                     except Exception as e:
                         logging.warning(f"Review followup eșuat pentru {u_id}: {e}")
- 
+
             cursor.close()
- 
+
         except Exception as e:
             logging.error(f"Eroare critică în followup loop: {e}")
         finally:
@@ -736,12 +792,12 @@ async def auto_followup_loop():
                     conn.close()
                 except Exception:
                     pass
- 
+
 # --- Main ---
 async def main():
     init_db()
     asyncio.create_task(auto_followup_loop())
     await dp.start_polling(bot)
- 
+
 if __name__ == "__main__":
     asyncio.run(main())
