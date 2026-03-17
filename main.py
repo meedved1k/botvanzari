@@ -433,7 +433,6 @@ async def process_buy(callback: types.CallbackQuery):
 "Practic, îți arată cum să mănânci corect în fiecare zi, astfel încât corpul tău să înceapă să se schimbe fără restricții inutile.\n\n"
 "Prețul ghidului este 300 MDL.\n\n"
 "Dacă simți că ai obosit de diete care nu funcționează și vrei în sfârșit un plan simplu pe care să-l poți urma, poți face plata prin MIA, iar eu îți trimit ghidul imediat aici ca să poți începe chiar de azi 🌿", reply_markup=builder.as_markup())
-, reply_markup=builder.as_markup() )
     await callback.answer()
 
 # --- Confirm Payment ---
