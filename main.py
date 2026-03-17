@@ -424,12 +424,17 @@ async def process_buy(callback: types.CallbackQuery):
     builder.row(InlineKeyboardButton(text="✅ Am achitat", callback_data="confirm_payment"))
     builder.row(InlineKeyboardButton(text="ℹ️ Am o  întrebare", url=LINK_SUPORT))
     await callback.message.answer(
-        "Mă bucur mult că vrei să facem asta împreună! ✨ Ghidul costă 300 MDL "
-        "și l-am făcut exact așa cum mi-aș fi dorit să-l am eu când am început – simplu, "
-        "fără bătăi de cap și cu rezultate reale. \n\n"
-        "Ca să îl primești, trebuie doar să trimiți bănuții prin MIA, iar după "
-        "ce faci transferul, lasă-mi aici o poză cu confirmarea. Imediat ce o văd, "
-        "îți trimit fișierul ca să poți începe chiar de azi! 🌸",
+        "Mă bucur mult că vrei să lucrăm împreună 🤍\n\n"
+    "Am creat acest ghid exact așa cum mi-aș fi dorit să îl am când am început — atunci când încercam diete, mă înfometam și tot simțeam că nu înțeleg ce face cu adevărat diferența.\n\n"
+"Este un ghid simplu, clar și construit ca să te ajute să obții abdomen mai plat fără diete extreme și fără stresul ce mai mănânc azi?\n\n"
+"În el găsești:\n"
+"🥗 structura corectă a meselor.\n"
+"🍽 combinații simple de alimente care chiar funcționează.\n"
+"📋 exemple reale de meniu pe care le poți urma imediat.\n"
+"Practic, îți arată cum să mănânci corect în fiecare zi, astfel încât corpul tău să înceapă să se schimbe fără restricții inutile.\n\n"
+"Prețul ghidului este 300 MDL.\n\n"
+"Dacă simți că ai obosit de diete care nu funcționează și vrei în sfârșit un plan simplu pe care să-l poți urma, poți face plata prin MIA, iar eu îți trimit ghidul imediat aici ca să poți începe chiar de azi 🌿", reply_markup=builder.as_markup())
+,
         reply_markup=builder.as_markup()
     )
     await callback.answer()
